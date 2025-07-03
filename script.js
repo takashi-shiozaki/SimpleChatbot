@@ -4,6 +4,10 @@ class SimpleChatbot {
         this.messageInput = document.getElementById('messageInput');
         this.sendButton = document.getElementById('sendButton');
         
+        this.userName = '';
+        this.userGender = '';
+        this.conversationState = 'asking_name'; // 'asking_name', 'asking_gender', 'normal'
+        
         this.responses = {
             greetings: [
                 'こんにちは！今日はいかがお過ごしですか？',
@@ -56,7 +60,16 @@ class SimpleChatbot {
             }
         });
         
+        this.updateInitialMessage();
+        
         this.messageInput.focus();
+    }
+    
+    updateInitialMessage() {
+        const initialMessage = document.querySelector('.bot-message .message-content p');
+        if (initialMessage) {
+            initialMessage.textContent = 'こんにちは！私はシンプルなチャットボットです。まず、お名前を教えていただけますか？';
+        }
     }
     
     getCurrentTime() {
@@ -80,7 +93,7 @@ class SimpleChatbot {
         
         setTimeout(() => {
             this.hideTypingIndicator();
-            const response = this.generateResponse(message);
+            const response = this.handleConversationFlow(message);
             this.addMessage(response, 'bot');
             this.sendButton.disabled = false;
             this.messageInput.focus();
@@ -137,30 +150,63 @@ class SimpleChatbot {
         }
     }
     
+    handleConversationFlow(message) {
+        switch (this.conversationState) {
+            case 'asking_name':
+                this.userName = message;
+                this.conversationState = 'asking_gender';
+                return `${this.userName}さん、はじめまして！性別を教えていただけますか？（男性・女性・その他）`;
+                
+            case 'asking_gender':
+                this.userGender = message;
+                this.conversationState = 'normal';
+                const genderSuffix = this.getGenderSuffix();
+                return `${this.userName}${genderSuffix}、ありがとうございます！これからよろしくお願いします。何でもお聞きください。`;
+                
+            case 'normal':
+                return this.generateResponse(message);
+                
+            default:
+                return this.generateResponse(message);
+        }
+    }
+    
+    getGenderSuffix() {
+        const lowerGender = this.userGender.toLowerCase();
+        if (lowerGender.includes('男') || lowerGender.includes('male')) {
+            return 'さん';
+        } else if (lowerGender.includes('女') || lowerGender.includes('female')) {
+            return 'さん';
+        } else {
+            return 'さん';
+        }
+    }
+    
     generateResponse(message) {
         const lowerMessage = message.toLowerCase();
+        const namePrefix = this.userName ? `${this.userName}さん、` : '';
         
         if (this.containsAny(lowerMessage, ['こんにちは', 'こんばんは', 'おはよう', 'はじめまして', 'hello', 'hi'])) {
-            return this.getRandomResponse('greetings');
+            return namePrefix + this.getRandomResponse('greetings');
         }
         
         if (this.containsAny(lowerMessage, ['ありがとう', 'ありがとうございます', 'サンキュー', 'thanks', 'thank you'])) {
-            return this.getRandomResponse('thanks');
+            return namePrefix + this.getRandomResponse('thanks');
         }
         
         if (this.containsAny(lowerMessage, ['天気', '天候', '晴れ', '雨', '曇り', '雪', 'weather'])) {
-            return this.getRandomResponse('weather');
+            return namePrefix + this.getRandomResponse('weather');
         }
         
         if (this.containsAny(lowerMessage, ['時間', '時刻', '何時', 'time', '今'])) {
-            return this.getRandomResponse('time');
+            return namePrefix + this.getRandomResponse('time');
         }
         
         if (this.containsAny(lowerMessage, ['？', '?', 'どう', 'なぜ', 'なに', '何', 'どこ', 'いつ', 'だれ', '誰'])) {
-            return this.getRandomResponse('questions');
+            return namePrefix + this.getRandomResponse('questions');
         }
         
-        return this.getRandomResponse('default');
+        return namePrefix + this.getRandomResponse('default');
     }
     
     containsAny(text, keywords) {
